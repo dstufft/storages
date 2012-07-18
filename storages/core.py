@@ -270,10 +270,10 @@ class FileSystemStorage(Storage):
         return urlparse.urljoin(self.base_uri, filepath_to_uri(name))
 
     def accessed_time(self, name):
-        return datetime.fromtimestamp(os.path.getatime(self.path(name)))
+        return datetime.datetime.fromtimestamp(os.path.getatime(self.path(name)))
 
     def created_time(self, name):
-        return datetime.fromtimestamp(os.path.getctime(self.path(name)))
+        return datetime.datetime.fromtimestamp(os.path.getctime(self.path(name)))
 
     def modified_time(self, name):
-        return datetime.fromtimestamp(os.path.getmtime(self.path(name)))
+        return datetime.datetime.fromtimestamp(os.path.getmtime(self.path(name)))
