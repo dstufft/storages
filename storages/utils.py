@@ -1,5 +1,6 @@
 import os
 import re
+import urllib
 
 from . import locks
 
@@ -18,7 +19,7 @@ except ImportError:
             os.chmod(dst, mode)
 
 
-__all__ = ("abspath", "file_move_safe", "get_valid_filename", "safe_join")
+__all__ = ("abspath", "file_move_safe", "filepath_to_uri", "get_valid_filename", "safe_join")
 
 
 def get_valid_filename(s):
@@ -140,3 +141,25 @@ def safe_join(base, *paths):
         raise ValueError("The joined path (%s) is located outside of the base "
                          "path component (%s)" % (final_path, base_path))
     return final_path
+
+
+def filepath_to_uri(path):
+    """
+    Convert an file system path to a URI portion that is suitable for
+    inclusion in a URL.
+
+    We are assuming input is either UTF-8 or unicode already.
+
+    This method will encode certain chars that would normally be recognized as
+    special chars for URIs.  Note that this method does not encode the '
+    character, as it is a valid character within URIs.  See
+    encodeURIComponent() JavaScript function for more details.
+
+    Returns an ASCII string containing the encoded result.
+    """
+    if path is None:
+        return path
+
+    # I know about `os.sep` and `os.altsep` but I want to leave
+    # some flexibility for hardcoding separators.
+    return urllib.quote(path.replace("\\", "/"), safe=b"/~!*()'")
