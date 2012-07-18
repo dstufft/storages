@@ -17,6 +17,23 @@ from .utils import abspath, filepath_to_uri, get_valid_filename, safe_join
 __all__ = ("Storage", "FileSystemStorage")
 
 
+def chunks(f, chunk_size=None):
+    """
+    Read the file and yield chucks of ``chunk_size`` bytes.
+    """
+    if not chunk_size:
+        chunk_size = 64 * 2 ** 10
+
+    if hasattr(f, "seek"):
+        f.seek(0)
+
+    while True:
+        data = f.read(chunk_size)
+        if not data:
+            break
+        yield data
+
+
 class Storage(object):
     """
     A base storage class, providing some default behaviors that all other
@@ -147,11 +164,12 @@ class FileSystemStorage(Storage):
     Standard filesystem storage
     """
 
-    def __init__(self, location=None, base_uri=None, default_permissions=None):
+    def __init__(self, location=None, base_uri=None, default_permissions=None, chunk_size=None):
         self.base_location = location
         self.location = abspath(self.base_location)
         self.base_uri = base_uri
         self.default_permissions = default_permissions
+        self.chunk_size = chunk_size
 
     def _open(self, name, mode=None):
         if mode is None:
@@ -189,7 +207,7 @@ class FileSystemStorage(Storage):
                 fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0))
                 try:
                     locks.lock(fd, locks.LOCK_EX)
-                    for chunk in content.chunks():
+                    for chunk in chunks(content, chunk_size=self.chunk_size):
                         os.write(fd, chunk)
                 finally:
                     locks.unlock(fd)
