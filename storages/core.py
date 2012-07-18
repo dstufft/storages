@@ -4,6 +4,9 @@ import os
 from .utils import get_valid_filename
 
 
+__all__ = ("Storage",)
+
+
 class Storage(object):
     """
     A base storage class, providing some default behaviors that all other
