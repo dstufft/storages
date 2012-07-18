@@ -1,7 +1,12 @@
+import datetime
+import errno
 import itertools
 import os
+import urlparse
 
-from .utils import get_valid_filename
+from . import locks
+from .exceptions import SuspiciousOperation
+from .utils import abspath, filepath_to_uri, get_valid_filename, safe_join
 
 
 __all__ = ("Storage",)
@@ -130,3 +135,122 @@ class Storage(object):
         specified by name.
         """
         raise NotImplementedError()
+
+
+class FileSystemStorage(Storage):
+    """
+    Standard filesystem storage
+    """
+
+    def __init__(self, location=None, base_uri=None, default_permissions=None):
+        self.base_location = location
+        self.location = abspath(self.base_location)
+        self.base_uri = base_uri
+        self.default_permissions = default_permissions
+
+    def _open(self, name, mode=None):
+        if mode is None:
+            mode = "rb"
+
+        return open(self.path(name), mode)
+
+    def _save(self, name, content):
+        full_path = self.path(name)
+
+        # Create any intermediate directories that do not exist.
+        # Note that there is a race between os.path.exists and os.makedirs:
+        # if os.makedirs fails with EEXIST, the directory was created
+        # concurrently, and we can continue normally. Refs #16082.
+        directory = os.path.dirname(full_path)
+        if not os.path.exists(directory):
+            try:
+                os.makedirs(directory)
+            except OSError as e:
+                if e.errno != errno.EEXIST:
+                    raise
+        if not os.path.isdir(directory):
+            raise IOError("%s exists and is not a directory." % directory)
+
+        # There's a potential race condition between get_available_name and
+        # saving the file; it's possible that two threads might return the
+        # same name, at which point all sorts of fun happens. So we need to
+        # try to create the file, but if it already exists we have to go back
+        # to get_available_name() and try again.
+
+        while True:
+            try:
+                # This fun binary flag incantation makes os.open throw an
+                # OSError if the file already exists before we open it.
+                fd = os.open(full_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0))
+                try:
+                    locks.lock(fd, locks.LOCK_EX)
+                    for chunk in content.chunks():
+                        os.write(fd, chunk)
+                finally:
+                    locks.unlock(fd)
+                    os.close(fd)
+            except OSError as e:
+                if e.errno == errno.EEXIST:
+                    # Ooops, the file exists. We need a new file name.
+                    name = self.get_available_name(name)
+                    full_path = self.path(name)
+                else:
+                    raise
+            else:
+                # OK, the file save worked. Break out of the loop.
+                break
+
+        if self.default_permissions is not None:
+            os.chmod(full_path, self.default_permissions)
+
+        return name
+
+    def delete(self, name):
+        name = self.path(name)
+        # If the file exists, delete it from the filesystem.
+        # Note that there is a race between os.path.exists and os.remove:
+        # if os.remove fails with ENOENT, the file was removed
+        # concurrently, and we can continue normally.
+        if os.path.exists(name):
+            try:
+                os.remove(name)
+            except OSError as e:
+                if e.errno != errno.ENOENT:
+                    raise
+
+    def exists(self, name):
+        return os.path.exists(self.path(name))
+
+    def listdir(self, path):
+        path = self.path(path)
+        directories, files = [], []
+        for entry in os.listdir(path):
+            if os.path.isdir(os.path.join(path, entry)):
+                directories.append(entry)
+            else:
+                files.append(entry)
+        return directories, files
+
+    def path(self, name):
+        try:
+            path = safe_join(self.location, name)
+        except ValueError:
+            raise SuspiciousOperation("Attempted access to '%s' denied." % name)
+        return os.path.normpath(path)
+
+    def size(self, name):
+        return os.path.getsize(self.path(name))
+
+    def url(self, name):
+        if self.base_uri is None:
+            raise ValueError("This file is not accessible via a URL.")
+        return urlparse.urljoin(self.base_uri, filepath_to_uri(name))
+
+    def accessed_time(self, name):
+        return datetime.fromtimestamp(os.path.getatime(self.path(name)))
+
+    def created_time(self, name):
+        return datetime.fromtimestamp(os.path.getctime(self.path(name)))
+
+    def modified_time(self, name):
+        return datetime.fromtimestamp(os.path.getmtime(self.path(name)))
