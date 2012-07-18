@@ -131,3 +131,15 @@ def import_module(name, package=None):
     __import__(name)
 
     return sys.modules[name]
+
+
+def get_storage_class(import_path):
+    try:
+        dot = import_path.rindex(".")
+    except ValueError:
+        raise ValueError("%s isn't a storage module." % import_path)
+
+    module, classname = import_path[:dot], import_path[dot + 1:]
+    mod = import_module(module)
+
+    return getattr(mod, classname)
