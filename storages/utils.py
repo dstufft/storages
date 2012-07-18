@@ -18,7 +18,7 @@ except ImportError:
             os.chmod(dst, mode)
 
 
-__all__ = ("get_valid_filename", "abspath", "file_move_safe")
+__all__ = ("abspath", "file_move_safe", "get_valid_filename", "safe_join")
 
 
 def get_valid_filename(s):
@@ -115,3 +115,28 @@ def file_move_safe(old_file_name, new_file_name, chunk_size=1024 * 64, allow_ove
         # on close anyway.)
         if getattr(e, 'winerror', 0) != 32 and getattr(e, 'errno', 0) != 13:
             raise
+
+
+def safe_join(base, *paths):
+    """
+    Joins one or more path components to the base path component intelligently.
+    Returns a normalized, absolute version of the final path.
+
+    The final path must be located inside of the base path component (otherwise
+    a ValueError is raised).
+    """
+    base = base
+    paths = [p for p in paths]
+    final_path = abspath(os.path.join(base, *paths))
+    base_path = abspath(base)
+    base_path_len = len(base_path)
+
+    # Ensure final_path starts with base_path (using normcase to ensure we
+    # don't false-negative on case insensitive operating systems like Windows)
+    # and that the next character after the final path is os.sep (or nothing,
+    # in which case final_path must be equal to base_path).
+    if not os.path.normcase(final_path).startswith(os.path.normcase(base_path)) \
+       or final_path[base_path_len:base_path_len + 1] not in ("", os.path.sep):
+        raise ValueError("The joined path (%s) is located outside of the base "
+                         "path component (%s)" % (final_path, base_path))
+    return final_path
