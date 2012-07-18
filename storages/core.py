@@ -14,7 +14,7 @@ from .exceptions import SuspiciousOperation
 from .utils import abspath, filepath_to_uri, get_valid_filename, safe_join
 
 
-__all__ = ("Storage",)
+__all__ = ("Storage", "FileSystemStorage")
 
 
 class Storage(object):
