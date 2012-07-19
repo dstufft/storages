@@ -130,9 +130,9 @@ class Storage(object):
         """
         raise NotImplementedError()
 
-    def url(self, name):
+    def uri(self, name):
         """
-        Returns an absolute URL where the file's contents can be accessed
+        Returns an absolute URI where the file's contents can be accessed
         directly by a Web browser.
         """
         raise NotImplementedError()
@@ -264,9 +264,9 @@ class FileSystemStorage(Storage):
     def size(self, name):
         return os.path.getsize(self.path(name))
 
-    def url(self, name):
+    def uri(self, name):
         if self.base_uri is None:
-            raise ValueError("This file is not accessible via a URL.")
+            raise ValueError("This file is not accessible via a URI.")
         return urlparse.urljoin(self.base_uri, filepath_to_uri(name))
 
     def accessed_time(self, name):
