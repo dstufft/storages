@@ -1,7 +1,7 @@
 import datetime
 import errno
+import io
 import os
-import StringIO
 
 import pytest
 
@@ -49,7 +49,7 @@ def test_file_accessed_time(tmpdir):
 
     assert not storage.exists("test.file")
 
-    f = StringIO.StringIO("custom contents")
+    f = io.StringIO("custom contents")
     f_name = storage.save("test.file", f)
     atime = storage.accessed_time(f_name)
 
@@ -66,7 +66,7 @@ def test_file_created_time(tmpdir):
 
     assert not storage.exists("test.file")
 
-    f = StringIO.StringIO("custom contents")
+    f = io.StringIO("custom contents")
     f_name = storage.save("test.file", f)
     ctime = storage.created_time(f_name)
 
@@ -83,7 +83,7 @@ def test_file_modified_time(tmpdir):
 
     assert not storage.exists("test.file")
 
-    f = StringIO.StringIO("custom contents")
+    f = io.StringIO("custom contents")
     f_name = storage.save("test.file", f)
     mtime = storage.modified_time(f_name)
 
@@ -100,7 +100,7 @@ def test_file_save_without_name(tmpdir):
 
     assert not storage.exists("test.file")
 
-    f = StringIO.StringIO("custom contents")
+    f = io.StringIO("custom contents")
     f.name = "test.file"
 
     storage_f_name = storage.save(None, f)
@@ -117,7 +117,7 @@ def test_file_save_with_path(tmpdir):
 
     assert not storage.exists("path/to")
 
-    storage.save("path/to/test.file", StringIO.StringIO("file saved with path"))
+    storage.save("path/to/test.file", io.StringIO("file saved with path"))
 
     assert storage.exists("path/to")
     assert storage.open("path/to/test.file").read() == "file saved with path"
@@ -132,7 +132,7 @@ def test_file_path(tmpdir):
 
     assert not storage.exists("test.file")
 
-    f = StringIO.StringIO("custom contents")
+    f = io.StringIO("custom contents")
     f_name = storage.save("test.file", f)
 
     assert storage.path(f_name) == os.path.join(str(tmpdir), f_name)
@@ -169,8 +169,8 @@ def test_listdir(tmpdir):
     assert not storage.exists("storage_test_2")
     assert not storage.exists("storage_dir_1")
 
-    storage.save("storage_test_1", StringIO.StringIO("custom content"))
-    storage.save("storage_test_2", StringIO.StringIO("custom content"))
+    storage.save("storage_test_1", io.StringIO("custom content"))
+    storage.save("storage_test_2", io.StringIO("custom content"))
 
     os.mkdir(os.path.join(str(tmpdir), 'storage_dir_1'))
 
@@ -230,15 +230,15 @@ def test_makedirs_race_handling(tmpdir, monkeypatch):
 
     storage = FileSystemStorage(location=str(tmpdir))
 
-    storage.save("normal/test.file", StringIO.StringIO("saved normally"))
+    storage.save("normal/test.file", io.StringIO("saved normally"))
     assert storage.open("normal/test.file").read() == "saved normally"
 
-    storage.save("raced/test.file", StringIO.StringIO("saved with race"))
+    storage.save("raced/test.file", io.StringIO("saved with race"))
     assert storage.open("raced/test.file").read() == "saved with race"
 
     # Check that OSErrors aside from EEXIST are still raised.
     with pytest.raises(OSError):
-        storage.save("error/test.file", StringIO.StringIO("not saved"))
+        storage.save("error/test.file", io.StringIO("not saved"))
 
 
 def test_remove_race_handling(tmpdir, monkeypatch):
@@ -264,18 +264,18 @@ def test_remove_race_handling(tmpdir, monkeypatch):
 
     storage = FileSystemStorage(location=str(tmpdir))
 
-    storage.save("normal.file", StringIO.StringIO("delete normally"))
+    storage.save("normal.file", io.StringIO("delete normally"))
     storage.delete("normal.file")
 
     assert not storage.exists("normal.file")
 
-    storage.save("raced.file", StringIO.StringIO("delete with race"))
+    storage.save("raced.file", io.StringIO("delete with race"))
     storage.delete("raced.file")
 
     assert not storage.exists("normal.file")
 
     # Check that OSErrors aside from ENOENT are still raised.
-    storage.save("error.file", StringIO.StringIO("delete with error"))
+    storage.save("error.file", io.StringIO("delete with error"))
 
     with pytest.raises(OSError):
         storage.delete("error.file")
