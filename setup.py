@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
-install_requires = []
-
 setup(
     name="storages",
     version="0.1dev1",
@@ -15,7 +13,11 @@ setup(
     author="Donald Stufft",
     author_email="donald.stufft@gmail.com",
 
-    install_requires=install_requires,
+    install_requires=[],
+
+    extras_require={
+        "test": ["py.test"],
+    },
 
     packages=find_packages(exclude=["tests"]),
     zip_safe=False,
