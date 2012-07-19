@@ -16,7 +16,7 @@ setup(
     install_requires=[],
 
     extras_require={
-        "test": ["py.test"],
+        "test": ["pytest"],
     },
 
     packages=find_packages(exclude=["tests"]),
