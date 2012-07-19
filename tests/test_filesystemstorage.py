@@ -104,8 +104,10 @@ def test_file_save_without_name(tmpdir):
 
     assert not storage.exists("test.file")
 
-    f = io.StringIO("custom contents")
-    f.name = "test.file"
+    class NamedStringIO(io.StringIO):
+        name = "test.file"
+
+    f = NamedStringIO("custom contents")
 
     storage_f_name = storage.save(None, f)
 
