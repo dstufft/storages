@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import os
 import sys
 
 # -------
@@ -20,5 +21,9 @@ is_py3 = (_ver[0] == 3)
 
 if is_py2:
     import urlparse
+
+    getcwdu = os.getcwdu
 else:
     import urllib.parse as urlparse
+
+    getcwdu = os.getcwd
