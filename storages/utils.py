@@ -8,8 +8,6 @@ import re
 import sys
 import urllib
 
-from .compat import getcwdu
-
 
 __all__ = ("abspath", "filepath_to_uri", "get_valid_filename", "import_module", "safe_join")
 
@@ -43,7 +41,7 @@ else:
         in join when the cwd has non-ASCII characters.
         """
         if not os.path.isabs(path):
-            path = os.path.join(getcwdu(), path)
+            path = os.path.join(os.getcwdu(), path)
         return os.path.normpath(path)
 
 

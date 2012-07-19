@@ -7,12 +7,11 @@ import datetime
 import errno
 import itertools
 import os
+import urlparse
 
 from . import locks
 from .exceptions import SuspiciousOperation
 from .utils import abspath, filepath_to_uri, get_valid_filename, safe_join
-
-from .compat import urlparse
 
 
 __all__ = ("Storage", "FileSystemStorage")
